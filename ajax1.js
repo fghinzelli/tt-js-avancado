@@ -44,7 +44,7 @@ function Usuario($nome, $telefone, $email) {
     
 }
 
-function Request($method, $URL, $callBackSuccess) {
+function $GET($URL, $callBackSuccess, $callBackError) {
     var xhttp;
     if (window.XMLHttpRequest) {
         //code for Modern browsers
@@ -54,28 +54,49 @@ function Request($method, $URL, $callBackSuccess) {
         xhttp = new ActiveXObject("Microsoft.XMLHTTP");
     }
 
+    xhttp.onprogress = function(oEvent) {
+        console.log("Aguarde, carregando...");
+        console.log(oEvent.loaded);
+    }
+
+    xhttp.onerror = function() {
+        $callBackError(this.response);
+    }
+
     xhttp.onreadystatechange = function() {
-        if (this.readyState == 4 && this.status == 200) {
-            $callBackSuccess(this.response);
+        if (this.readyState == 4) {
+            switch (this.status) {
+                case 200:
+                    $callBackSuccess(this.response);
+                    break;
+                case 404:
+                    $callBackError(this.response);
+                    break;
+                default:
+                    break;
+            }
         }
     };
 
-    xhttp.open($method, $URL);
+    xhttp.open("GET", $URL, true);
     xhttp.send();
 }
 
-Request("GET", conts.base + "/usuario", function($retorno){
-    //console.log($retorno);
-    var json = JSON.parse($retorno);
-    var user_list = [];
-    for (var i=0; i<json.length; i++) {
-        var usuario = new Usuario(json[i].nome, json[i].telefone, json[i].email);
-        user_list.push(usuario);
-    } 
-    montaLista(user_list);
-});
+$GET(conts.base + "/usuario", 
+    function($retorno){
+        var json = JSON.parse($retorno);
+        var user_list = [];
+        for (var i=0; i<json.length; i++) {
+            var usuario = new Usuario(json[i].nome, json[i].telefone, json[i].email);
+            user_list.push(usuario);
+        } 
+        montaTabela(user_list);
+    }, function($retorno) {
+        alert("Não foi possível buscar os dados.");
+        console.error($retorno);
+    });
 
-function montaLista(listaUsuarios) {
+function montaTabela(listaUsuarios) {
     var tabela = document.querySelector("#table-usuarios");
     for (var i=0; i<listaUsuarios.length; i++) {
         var tbody = document.createElement("tbody");
